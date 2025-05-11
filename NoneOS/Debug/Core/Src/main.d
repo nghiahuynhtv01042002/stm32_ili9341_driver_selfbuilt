@@ -1,6 +1,5 @@
-Core/Src/main.o: ../Core/Src/main.c \
- G:/stm32cubeide/workspace/TouchScreen/NoneOS/ili9341/inc/ili9341.h \
- ../Core/Inc/main.h ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h \
+Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
+ ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h \
  ../Core/Inc/stm32f4xx_hal_conf.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_rcc.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_def.h \
@@ -31,10 +30,9 @@ Core/Src/main.o: ../Core/Src/main.c \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h \
  G:/stm32cubeide/workspace/TouchScreen/NoneOS/ili9341/inc/font.h \
  G:/stm32cubeide/workspace/TouchScreen/NoneOS/ili9341/inc/ili9341.h \
- G:/stm32cubeide/workspace/TouchScreen/NoneOS/ili9341/inc/image.h \
  G:/stm32cubeide/workspace/TouchScreen/NoneOS/ili9341/inc/font.h \
+ G:/stm32cubeide/workspace/TouchScreen/NoneOS/ili9341/inc/image.h \
  G:/stm32cubeide/workspace/TouchScreen/NoneOS/ili9341/inc/image.h
-G:/stm32cubeide/workspace/TouchScreen/NoneOS/ili9341/inc/ili9341.h:
 ../Core/Inc/main.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h:
 ../Core/Inc/stm32f4xx_hal_conf.h:
@@ -67,6 +65,6 @@ G:/stm32cubeide/workspace/TouchScreen/NoneOS/ili9341/inc/ili9341.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h:
 G:/stm32cubeide/workspace/TouchScreen/NoneOS/ili9341/inc/font.h:
 G:/stm32cubeide/workspace/TouchScreen/NoneOS/ili9341/inc/ili9341.h:
-G:/stm32cubeide/workspace/TouchScreen/NoneOS/ili9341/inc/image.h:
 G:/stm32cubeide/workspace/TouchScreen/NoneOS/ili9341/inc/font.h:
+G:/stm32cubeide/workspace/TouchScreen/NoneOS/ili9341/inc/image.h:
 G:/stm32cubeide/workspace/TouchScreen/NoneOS/ili9341/inc/image.h:

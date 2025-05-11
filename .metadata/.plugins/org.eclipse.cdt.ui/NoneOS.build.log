@@ -1,10 +1,10 @@
-22:27:17 **** Incremental Build of configuration Debug for project NoneOS ****
+22:46:56 **** Incremental Build of configuration Debug for project NoneOS ****
 make -j8 all 
 arm-none-eabi-size  NoneOS.elf 
    text	   data	    bss	    dec	    hex	filename
- 163668	     12	   1900	 165580	  286cc	NoneOS.elf
+ 164008	     12	   2084	 166104	  288d8	NoneOS.elf
 Finished building: default.size.stdout
  
 
-22:27:17 Build Finished. 0 errors, 0 warnings. (took 334ms)
+22:46:56 Build Finished. 0 errors, 0 warnings. (took 312ms)
 

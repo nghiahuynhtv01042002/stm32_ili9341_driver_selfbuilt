@@ -10,10 +10,7 @@ extern "C" {
 #include "main.h" // For STM32F4
 #include "font.h"
 #include "image.h"
-
 extern SPI_HandleTypeDef hspi1;
-#define LCD_SPI_HANDLE (&hspi1)
-
 /* DEFINE PIN */
 #define LCD_DC_PORT     GPIOC
 #define LCD_DC_PIN      GPIO_PIN_4
@@ -22,6 +19,7 @@ extern SPI_HandleTypeDef hspi1;
 #define LCD_CS_PORT     GPIOB
 #define LCD_CS_PIN      GPIO_PIN_2
 
+#define LCD_SPI_HANDLE (&hspi2)
 
 /* DEFINITION OF COLOR */
 #define BLACK       0x0000

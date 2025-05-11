@@ -138,7 +138,6 @@ int main(void)
   	Fill_Screen(RGB_TO_BGR(BLACK));
     LCD_DisplayString(30, 30, "STM32F411 + ILI9341", BLUE, BLACK);
     LCD_DisplayString(30, 50, "Hello World!", RED, BLACK);
-    HAL_Delay(1000);
     LCD_DrawImage(0,0,&IMG);
   /* USER CODE END 3 */
 }
