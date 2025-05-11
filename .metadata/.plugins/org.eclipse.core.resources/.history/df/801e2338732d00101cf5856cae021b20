@@ -1,0 +1,108 @@
+/*
+ * ili9431EXTEND.c
+ *
+ *  Created on: May 10, 2025
+ *      Author: Nghia
+ */
+
+#include "ili9341EXTEND.h"
+#include "main.h"
+#include "ili9431.h"
+14:47:17 **** Incremental Build of configuration Debug for project NoneOS ****
+make -j8 all
+arm-none-eabi-gcc "../ili9341/src/ili9341EXTEND.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F411xE -c -I"G:/stm32cubeide/workspace/TouchScreen/NoneOS/ili9341/inc" -I../Core/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I../Drivers/CMSIS/Include -Os -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"ili9341/src/ili9341EXTEND.d" -MT"ili9341/src/ili9341EXTEND.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "ili9341/src/ili9341EXTEND.o"
+../ili9341/src/ili9341EXTEND.c: In function 'ILI9341_DrawChar':
+../ili9341/src/ili9341EXTEND.c:24:31: warning: array subscript has type 'char' [-Wchar-subscripts]
+   24 |         uint8_t line = font5x7[ch][i];
+      |                               ^
+../ili9341/src/ili9341EXTEND.c: In function 'ILI9341_FillScreen':
+../ili9341/src/ili9341EXTEND.c:60:5: warning: implicit declaration of function 'DC_H' [-Wimplicit-function-declaration]
+   60 |     DC_H();
+      |     ^~~~
+../ili9341/src/ili9341EXTEND.c:68:35: error: 'hspi1' undeclared (first use in this function)
+   68 |             if (HAL_SPI_Transmit(&hspi1, data, 2, 1000) != HAL_OK) {
+      |                                   ^~~~~
+../ili9341/src/ili9341EXTEND.c:68:35: note: each undeclared identifier is reported only once for each function it appears in
+make: *** [ili9341/src/subdir.mk:22: ili9341/src/ili9341EXTEND.o] Error 1
+"make -j8 all" terminated with exit code 2. Build might be incomplete.
+
+14:47:18 Build Failed. 2 errors, 2 warnings. (took 475ms)
+
+
+// Vẽ ký tự với font 5x7
+void ILI9341_DrawChar(uint16_t x, uint16_t y, char ch, uint16_t color, uint16_t bg_color) {
+    uint8_t i, j;
+
+    // Chỉ xử lý ký tự ASCII từ 32-90 (space đến Z)
+    if (ch < 32 || ch > 90)
+        ch = '?'; // Ký tự không hỗ trợ
+
+    // Điều chỉnh index của font
+    ch -= 32;
+
+    // Vẽ từng cột của ký tự
+    for (i = 0; i < 5; i++) {
+        uint8_t line = font5x7[ch][i];
+
+        // Vẽ từng điểm trong cột
+        for (j = 0; j < 8; j++) {
+            if (line & 0x01) {
+                ILI9341_WritePixel(x + i, y + j, color);
+            } else {
+                ILI9341_WritePixel(x + i, y + j, bg_color);
+            }
+            line >>= 1;
+        }
+    }
+
+    // Vẽ khoảng trống bên phải ký tự (khoảng cách giữa các ký tự)
+    for (j = 0; j < 8; j++) {
+        ILI9341_WritePixel(x + 5, y + j, bg_color);
+    }
+}
+
+// Hiển thị chuỗi text
+void ILI9341_DrawString(uint16_t x, uint16_t y, char *str, uint16_t color, uint16_t bg_color) {
+    while (*str) {
+        ILI9341_DrawChar(x, y, *str++, color, bg_color);
+        x += 6; // Mỗi ký tự rộng 5 pixel + 1 pixel khoảng cách
+    }
+}
+
+// Xóa màn hình với một màu
+void ILI9341_FillScreen(uint16_t color) {
+    uint16_t i, j;
+
+    // Đặt cửa sổ cho toàn bộ màn hình
+    ILI9341_SetWindow(0, 0, 239, 319); // Kích thước tiêu chuẩn của ILI9341 là 240x320
+
+    // Ghi dữ liệu vào GRAM
+    LCD_WR_REG(0x2C);
+    DC_H();
+
+    for (i = 0; i < 320; i++) {
+        for (j = 0; j < 240; j++) {
+            uint8_t data[2];
+            data[0] = color >> 8;
+            data[1] = color & 0xFF;
+
+            if (HAL_SPI_Transmit(&hspi1, data, 2, 1000) != HAL_OK) {
+                Error_Handler();
+            }
+        }
+    }
+}
+
+// Hàm hiển thị "I AM TXN" trên màn hình
+void DisplayText(void) {
+    // Khởi tạo màn hình
+    ILI9341_Init();
+
+    // Xóa màn hình với màu đen
+    ILI9341_FillScreen(BLACK);
+
+    // Hiển thị chuỗi "I AM TXN"
+    ILI9341_DrawString(90, 150, "I AM TXN", WHITE, BLACK);
+}
+
+

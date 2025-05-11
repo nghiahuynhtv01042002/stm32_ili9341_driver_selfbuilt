@@ -1,0 +1,14 @@
+../ili9341/src/ili9341.c:3:6:LCD_Write_Command	1
+../ili9341/src/ili9341.c:11:6:LCD_Write_Data	1
+../ili9341/src/ili9341.c:19:6:LCD_Write_Data16	1
+../ili9341/src/ili9341.c:31:6:LCD_Reset	1
+../ili9341/src/ili9341.c:39:6:LCD_SetWindow	1
+../ili9341/src/ili9341.c:55:6:LCD_Fill	2
+../ili9341/src/ili9341.c:71:6:LCD_Clear	1
+../ili9341/src/ili9341.c:76:6:LCD_Init	1
+../ili9341/src/ili9341.c:189:10:RGBToBGR	1
+../ili9341/src/ili9341.c:196:6:Draw_Big_N	2
+../ili9341/src/ili9341.c:210:6:LCD_DrawChar	4
+../ili9341/src/ili9341.c:237:6:LCD_DisplayString	3
+../ili9341/src/ili9341.c:249:6:Fill_Screen	2
+../ili9341/src/ili9341.c:269:6:LCD_DrawImage	2

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Rename resource &apos;NoneOS/ili9341/inc/ili9431.h&apos; to &apos;ili9341.h&apos;" description="Rename resource &apos;ili9431.h&apos;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="ili9341/inc/ili9431.h" name="ili9341.h" stamp="1746976190958" updateReferences="true"/>
+</session>

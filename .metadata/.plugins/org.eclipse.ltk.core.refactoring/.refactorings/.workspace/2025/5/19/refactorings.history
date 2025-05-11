@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">&#x0A;<refactoring comment="Delete resource &apos;NoneOS/ili9341/inc/ili9341EXTEND.h&apos;" deleteContents="false" description="Delete resource &apos;NoneOS/ili9341/inc/ili9341EXTEND.h&apos;" element1="/NoneOS/ili9341/inc/ili9341EXTEND.h" flags="7" id="org.eclipse.ltk.core.refactoring.delete.resources" resources="1" stamp="1746864620056"/>&#x0A;<refactoring comment="Delete resource &apos;NoneOS/ili9341/src/ili9341EXTEND.c&apos;" deleteContents="false" description="Delete resource &apos;NoneOS/ili9341/src/ili9341EXTEND.c&apos;" element1="/NoneOS/ili9341/src/ili9341EXTEND.c" flags="7" id="org.eclipse.ltk.core.refactoring.delete.resources" resources="1" stamp="1746864625082"/>
+</session>

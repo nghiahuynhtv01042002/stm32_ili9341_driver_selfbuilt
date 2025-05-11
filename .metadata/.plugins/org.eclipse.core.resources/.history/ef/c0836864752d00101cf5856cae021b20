@@ -1,0 +1,595 @@
+/* USER CODE BEGIN Header */
+/**
+  ******************************************************************************
+  * @file           : main.c
+  * @brief          : Main program body
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2025 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  */
+/* USER CODE END Header */
+/* Includes ------------------------------------------------------------------*/
+#include "main.h"
+
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
+
+/* USER CODE END Includes */
+
+/* Private typedef -----------------------------------------------------------*/
+/* USER CODE BEGIN PTD */
+
+/* USER CODE END PTD */
+
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
+
+/* USER CODE END PD */
+
+/* Private macro -------------------------------------------------------------*/
+/* USER CODE BEGIN PM */
+
+/* USER CODE END PM */
+
+/* Private variables ---------------------------------------------------------*/
+SPI_HandleTypeDef hspi1;
+DMA_HandleTypeDef hdma_spi1_tx;
+
+TIM_HandleTypeDef htim2;
+
+UART_HandleTypeDef huart2;
+
+/* USER CODE BEGIN PV */
+
+/* USER CODE END PV */
+
+/* Private function prototypes -----------------------------------------------*/
+void SystemClock_Config(void);
+static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
+static void MX_USART2_UART_Init(void);
+static void MX_SPI1_Init(void);
+static void MX_TIM2_Init(void);
+/* USER CODE BEGIN PFP */
+
+/* USER CODE END PFP */
+
+/* Private user code ---------------------------------------------------------*/
+/* USER CODE BEGIN 0 */
+#define LCD_CS_PORT     GPIOA
+#define LCD_CS_PIN      GPIO_PIN_4
+#define LCD_DC_PORT     GPIOA
+#define LCD_DC_PIN      GPIO_PIN_3
+#define LCD_RST_PORT    GPIOA
+#define LCD_RST_PIN     GPIO_PIN_2
+
+/* Định nghĩa màu sắc */
+#define BLACK       0x0000
+#define WHITE       0xFFFF
+#define RED         0xF800
+#define GREEN       0x07E0
+#define BLUE        0x001F
+#define YELLOW      0xFFE0
+
+/* Kích thước màn hình */
+#define ILI9341_WIDTH   240
+#define ILI9341_HEIGHT  320
+void LCD_Write_Command(uint8_t cmd)
+{
+  HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS_PIN, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(LCD_DC_PORT, LCD_DC_PIN, GPIO_PIN_RESET);
+  HAL_SPI_Transmit(&hspi1, &cmd, 1, HAL_MAX_DELAY);
+  HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS_PIN, GPIO_PIN_SET);
+}
+
+void LCD_Write_Data(uint8_t data)
+{
+  HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS_PIN, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(LCD_DC_PORT, LCD_DC_PIN, GPIO_PIN_SET);
+  HAL_SPI_Transmit(&hspi1, &data, 1, HAL_MAX_DELAY);
+  HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS_PIN, GPIO_PIN_SET);
+}
+
+void LCD_Write_Data16(uint16_t data)
+{
+  uint8_t data_h = (data >> 8);
+  uint8_t data_l = data & 0xFF;
+
+  HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS_PIN, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(LCD_DC_PORT, LCD_DC_PIN, GPIO_PIN_SET);
+  HAL_SPI_Transmit(&hspi1, &data_h, 1, HAL_MAX_DELAY);
+  HAL_SPI_Transmit(&hspi1, &data_l, 1, HAL_MAX_DELAY);
+  HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS_PIN, GPIO_PIN_SET);
+}
+
+void LCD_Reset(void)
+{
+  HAL_GPIO_WritePin(LCD_RST_PORT, LCD_RST_PIN, GPIO_PIN_RESET);
+  HAL_Delay(100);
+  HAL_GPIO_WritePin(LCD_RST_PORT, LCD_RST_PIN, GPIO_PIN_SET);
+  HAL_Delay(100);
+}
+
+void LCD_SetWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
+{
+  /* Cài đặt vùng cột */
+  LCD_Write_Command(0x2A);  // Column Address Set
+  LCD_Write_Data16(x0);
+  LCD_Write_Data16(x1);
+
+  /* Cài đặt vùng hàng */
+  LCD_Write_Command(0x2B);  // Row Address Set
+  LCD_Write_Data16(y0);
+  LCD_Write_Data16(y1);
+
+  /* Bắt đầu ghi dữ liệu */
+  LCD_Write_Command(0x2C);  // Memory Write
+}
+
+void LCD_Fill(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t color)
+{
+  uint32_t total_pixels = (x1 - x0 + 1) * (y1 - y0 + 1);
+
+  LCD_SetWindow(x0, y0, x1, y1);
+
+  HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS_PIN, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(LCD_DC_PORT, LCD_DC_PIN, GPIO_PIN_SET);
+
+  for (uint32_t i = 0; i < total_pixels; i++) {
+    LCD_Write_Data16(color);
+  }
+
+  HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS_PIN, GPIO_PIN_SET);
+}
+
+void LCD_Clear(uint16_t color)
+{
+  LCD_Fill(0, 0, ILI9341_WIDTH - 1, ILI9341_HEIGHT - 1, color);
+}
+
+void LCD_Init(void)
+{
+  /* Khởi tạo phần cứng */
+  LCD_Reset();
+
+  /* Chuỗi lệnh khởi tạo LCD */
+  LCD_Write_Command(0x01);  // Software Reset
+  HAL_Delay(100);
+
+  LCD_Write_Command(0xCF);  // Power Control B
+  LCD_Write_Data(0x00);
+  LCD_Write_Data(0xC1);
+  LCD_Write_Data(0x30);
+
+  LCD_Write_Command(0xED);  // Power on sequence control
+  LCD_Write_Data(0x64);
+  LCD_Write_Data(0x03);
+  LCD_Write_Data(0x12);
+  LCD_Write_Data(0x81);
+
+  LCD_Write_Command(0xE8);  // Driver timing control A
+  LCD_Write_Data(0x85);
+  LCD_Write_Data(0x00);
+  LCD_Write_Data(0x78);
+
+  LCD_Write_Command(0xCB);  // Power Control A
+  LCD_Write_Data(0x39);
+  LCD_Write_Data(0x2C);
+  LCD_Write_Data(0x00);
+  LCD_Write_Data(0x34);
+  LCD_Write_Data(0x02);
+
+  LCD_Write_Command(0xF7);  // Pump ratio control
+  LCD_Write_Data(0x20);
+
+  LCD_Write_Command(0xEA);  // Driver timing control B
+  LCD_Write_Data(0x00);
+  LCD_Write_Data(0x00);
+
+  LCD_Write_Command(0xC0);  // Power Control 1
+  LCD_Write_Data(0x23);
+
+  LCD_Write_Command(0xC1);  // Power Control 2
+  LCD_Write_Data(0x10);
+
+  LCD_Write_Command(0xC5);  // VCOM Control 1
+  LCD_Write_Data(0x3E);
+  LCD_Write_Data(0x28);
+
+  LCD_Write_Command(0xC7);  // VCOM Control 2
+  LCD_Write_Data(0x86);
+
+  LCD_Write_Command(0x36);  // Memory Access Control
+  LCD_Write_Data(0x48);     // Cấu hình hướng màn hình
+
+  LCD_Write_Command(0x3A);  // Pixel Format Set
+  LCD_Write_Data(0x55);     // 16-bit color
+
+  LCD_Write_Command(0xB1);  // Frame Rate Control
+  LCD_Write_Data(0x00);
+  LCD_Write_Data(0x18);
+
+  LCD_Write_Command(0xB6);  // Display Function Control
+  LCD_Write_Data(0x08);
+  LCD_Write_Data(0x82);
+  LCD_Write_Data(0x27);
+
+  LCD_Write_Command(0xF2);  // 3Gamma Function Disable
+  LCD_Write_Data(0x00);
+
+  LCD_Write_Command(0x26);  // Gamma curve selected
+  LCD_Write_Data(0x01);
+
+  LCD_Write_Command(0xE0);  // Set Gamma
+  LCD_Write_Data(0x0F);
+  LCD_Write_Data(0x31);
+  LCD_Write_Data(0x2B);
+  LCD_Write_Data(0x0C);
+  LCD_Write_Data(0x0E);
+  LCD_Write_Data(0x08);
+  LCD_Write_Data(0x4E);
+  LCD_Write_Data(0xF1);
+  LCD_Write_Data(0x37);
+  LCD_Write_Data(0x07);
+  LCD_Write_Data(0x10);
+  LCD_Write_Data(0x03);
+  LCD_Write_Data(0x0E);
+  LCD_Write_Data(0x09);
+  LCD_Write_Data(0x00);
+
+  LCD_Write_Command(0xE1);  // Set Gamma
+  LCD_Write_Data(0x00);
+  LCD_Write_Data(0x0E);
+  LCD_Write_Data(0x14);
+  LCD_Write_Data(0x03);
+  LCD_Write_Data(0x11);
+  LCD_Write_Data(0x07);
+  LCD_Write_Data(0x31);
+  LCD_Write_Data(0xC1);
+  LCD_Write_Data(0x48);
+  LCD_Write_Data(0x08);
+  LCD_Write_Data(0x0F);
+  LCD_Write_Data(0x0C);
+  LCD_Write_Data(0x31);
+  LCD_Write_Data(0x36);
+  LCD_Write_Data(0x0F);
+
+  LCD_Write_Command(0x11);  // Exit Sleep
+  HAL_Delay(120);
+
+  LCD_Write_Command(0x29);  // Display On
+  HAL_Delay(20);
+}
+void Draw_Big_N(uint16_t x0, uint16_t y0, uint16_t width, uint16_t height, uint16_t color)
+{
+  uint16_t thickness = width / 5;  // Độ dày của nét vẽ
+
+  // Vẽ cột bên trái
+  LCD_Fill(x0, y0, x0 + thickness - 1, y0 + height - 1, color);
+
+  // Vẽ cột bên phải
+  LCD_Fill(x0 + width - thickness, y0, x0 + width - 1, y0 + height - 1, color);
+
+  // Vẽ đường chéo
+  for (uint16_t i = 0; i < height; i++) {
+    uint16_t diagonal_width = (i * (width - thickness)) / height;
+    LCD_Fill(x0 + diagonal_width, y0 + i, x0 + diagonal_width + thickness - 1, y0 + i, color);
+  }
+}
+/* USER CODE END 0 */
+
+/**
+  * @brief  The application entry point.
+  * @retval int
+  */
+int main(void)
+{
+
+  /* USER CODE BEGIN 1 */
+
+  /* USER CODE END 1 */
+
+  /* MCU Configuration--------------------------------------------------------*/
+
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
+
+  /* USER CODE BEGIN Init */
+
+  /* USER CODE END Init */
+
+  /* Configure the system clock */
+  SystemClock_Config();
+
+  /* USER CODE BEGIN SysInit */
+
+  /* USER CODE END SysInit */
+
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_DMA_Init();
+  MX_USART2_UART_Init();
+  MX_SPI1_Init();
+  MX_TIM2_Init();
+  /* USER CODE BEGIN 2 */
+
+  /* USER CODE END 2 */
+
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
+  while (1)
+  {
+	  LCD_Init();
+	  LCD_Clear(WHITE);
+	  Draw_Big_N(ILI9341_WIDTH/4, ILI9341_HEIGHT/4, ILI9341_WIDTH/2, ILI9341_HEIGHT/2, RED);
+	  HAL_Delay(1000);
+	  /* USER CODE END WHILE */
+
+    /* USER CODE BEGIN 3 */
+  }
+  /* USER CODE END 3 */
+}
+
+/**
+  * @brief System Clock Configuration
+  * @retval None
+  */
+void SystemClock_Config(void)
+{
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+
+  /** Configure the main internal regulator output voltage
+  */
+  __HAL_RCC_PWR_CLK_ENABLE();
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+
+  /** Initializes the RCC Oscillators according to the specified parameters
+  * in the RCC_OscInitTypeDef structure.
+  */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLM = 4;
+  RCC_OscInitStruct.PLL.PLLN = 100;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+  RCC_OscInitStruct.PLL.PLLQ = 4;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Initializes the CPU, AHB and APB buses clocks
+  */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
+
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+/**
+  * @brief SPI1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_SPI1_Init(void)
+{
+
+  /* USER CODE BEGIN SPI1_Init 0 */
+
+  /* USER CODE END SPI1_Init 0 */
+
+  /* USER CODE BEGIN SPI1_Init 1 */
+
+  /* USER CODE END SPI1_Init 1 */
+  /* SPI1 parameter configuration*/
+  hspi1.Instance = SPI1;
+  hspi1.Init.Mode = SPI_MODE_MASTER;
+  hspi1.Init.Direction = SPI_DIRECTION_2LINES;
+  hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi1.Init.NSS = SPI_NSS_SOFT;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi1.Init.CRCPolynomial = 10;
+  if (HAL_SPI_Init(&hspi1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN SPI1_Init 2 */
+
+  /* USER CODE END SPI1_Init 2 */
+
+}
+
+/**
+  * @brief TIM2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM2_Init(void)
+{
+
+  /* USER CODE BEGIN TIM2_Init 0 */
+
+  /* USER CODE END TIM2_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM2_Init 1 */
+
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 100-1;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 50000-1;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM2_Init 2 */
+
+  /* USER CODE END TIM2_Init 2 */
+
+}
+
+/**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART2_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART2_Init 0 */
+
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 115200;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
+
+  /* USER CODE END USART2_Init 2 */
+
+}
+
+/**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA2_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA2_Stream2_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
+
+}
+
+/**
+  * @brief GPIO Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_GPIO_Init(void)
+{
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  /* USER CODE BEGIN MX_GPIO_Init_1 */
+
+  /* USER CODE END MX_GPIO_Init_1 */
+
+  /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOH_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(DC_GPIO_Port, DC_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, RESET_Pin|SPI1_NSS_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : DC_Pin */
+  GPIO_InitStruct.Pin = DC_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(DC_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : RESET_Pin SPI1_NSS_Pin */
+  GPIO_InitStruct.Pin = RESET_Pin|SPI1_NSS_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /* USER CODE BEGIN MX_GPIO_Init_2 */
+
+  /* USER CODE END MX_GPIO_Init_2 */
+}
+
+/* USER CODE BEGIN 4 */
+
+/* USER CODE END 4 */
+
+/**
+  * @brief  This function is executed in case of error occurrence.
+  * @retval None
+  */
+void Error_Handler(void)
+{
+  /* USER CODE BEGIN Error_Handler_Debug */
+  /* User can add his own implementation to report the HAL error return state */
+  __disable_irq();
+  while (1)
+  {
+  }
+  /* USER CODE END Error_Handler_Debug */
+}
+
+#ifdef  USE_FULL_ASSERT
+/**
+  * @brief  Reports the name of the source file and the source line number
+  *         where the assert_param error has occurred.
+  * @param  file: pointer to the source file name
+  * @param  line: assert_param error line source number
+  * @retval None
+  */
+void assert_failed(uint8_t *file, uint32_t line)
+{
+  /* USER CODE BEGIN 6 */
+  /* User can add his own implementation to report the file name and line number,
+     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+  /* USER CODE END 6 */
+}
+#endif /* USE_FULL_ASSERT */

@@ -1,0 +1,11 @@
+#ifndef IMAGE_H_
+#define IMAGE_H_
+#include "ili9431.h"
+typedef struct {
+    uint16_t width;          // Chiều rộng hình ảnh
+    uint16_t height;         // Chiều cao hình ảnh
+    const uint16_t *data;    // Con trỏ đến mảng dữ liệu màu RGB565
+  } Image;
+ extern const uint16_t image_data[];
+ extern const Image IMG;
+#endif

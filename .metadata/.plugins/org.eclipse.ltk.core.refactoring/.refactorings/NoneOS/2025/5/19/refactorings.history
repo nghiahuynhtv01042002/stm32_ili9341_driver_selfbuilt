@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Rename resource &apos;NoneOS/ili9341/src/ili9431EXTEND.c&apos; to &apos;ili9341EXTEND.c&apos;" description="Rename resource &apos;ili9431EXTEND.c&apos;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="ili9341/src/ili9431EXTEND.c" name="ili9341EXTEND.c" stamp="1746863153195" updateReferences="true"/>
+</session>

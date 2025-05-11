@@ -1,0 +1,28 @@
+/*
+ * ili9341EXTEND.h
+ *
+ *  Created on: May 10, 2025
+ *      Author: Nghia
+ */
+
+#ifndef INC_ILI9341EXTEND_H_
+#define INC_ILI9341EXTEND_H_
+#include "ili9431.h"
+#include "main.h"
+#include "ili9431.h"
+
+
+// Màu sắc
+#define BLACK   0x0000
+#define BLUE    0x001F
+#define RED     0xF800
+#define GREEN   0x07E0
+#define CYAN    0x07FF
+#define MAGENTA 0xF81F
+#define YELLOW  0xFFE0
+#define WHITE   0xFFFF
+void ILI9341_DrawChar(uint16_t x, uint16_t y, char ch, uint16_t color, uint16_t bg_color) ;
+void ILI9341_DrawString(uint16_t x, uint16_t y, char *str, uint16_t color, uint16_t bg_color);
+void ILI9341_FillScreen(uint16_t color);
+void DisplayText(void);
+#endif /* INC_ILI9341EXTEND_H_ */
